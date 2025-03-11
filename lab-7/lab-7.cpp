@@ -1,28 +1,31 @@
 #include <iostream>
 #include <string>
+#include <vector>
 
 using namespace std;
 
-class CuentaBancaria {
-private:
+class Cuenta {
+protected:
     string titular;
     double saldo;
     bool activa;
-    int intentosFallidos;
-    int mesesInactivo;
 
 public:
-    // Constructor
-    CuentaBancaria(string nombre, double saldoInicial) {
-        titular = nombre;
-        saldo = saldoInicial;
-        activa = true;
-        intentosFallidos = 0;
-        mesesInactivo = 0;
-    }
+    Cuenta(string nombre, double saldoInicial) : titular(nombre), saldo(saldoInicial), activa(true) {}
+    virtual void depositar(double monto) = 0;
+    virtual void retirar(double monto) = 0;
+    virtual void consultarSaldo() const = 0;
+    virtual ~Cuenta() {}
+};
 
-    // Metodo para depositar dinero
-    void depositar(double monto) {
+class CuentaBancaria : public Cuenta {
+private:
+    int intentosFallidos;
+
+public:
+    CuentaBancaria(string nombre, double saldoInicial) : Cuenta(nombre, saldoInicial), intentosFallidos(0) {}
+
+    void depositar(double monto) override {
         if (!activa) {
             cout << "No se pueden hacer depositos. La cuenta esta bloqueada." << endl;
             return;
@@ -35,8 +38,7 @@ public:
         cout << "Deposito exitoso. Nuevo saldo: " << saldo << endl;
     }
 
-    // Metodo para retirar dinero
-    void retirar(double monto) {
+    void retirar(double monto) override {
         if (!activa) {
             cout << "No se pueden hacer retiros. La cuenta esta bloqueada." << endl;
             return;
@@ -61,8 +63,7 @@ public:
         }
     }
 
-    // Metodo para consultar saldo
-    void consultarSaldo() {
+    void consultarSaldo() const override {
         cout << "Titular: " << titular << endl;
         cout << "Saldo: " << saldo << endl;
         cout << "Estado: " << (activa ? "Activa" : "Bloqueada") << endl;
@@ -70,17 +71,24 @@ public:
 };
 
 int main() {
-    string nombre;
-    double saldoInicial;
+    vector<Cuenta*> cuentas;
+    int numCuentas;
+    cout << "Ingrese el numero de cuentas (max 30): ";
+    cin >> numCuentas;
+    if (numCuentas > 30) numCuentas = 30;
 
-    cout << "Ingrese el nombre del titular: ";
-    getline(cin, nombre);
-    cout << "Ingrese el saldo inicial: ";
-    cin >> saldoInicial;
+    for (int i = 0; i < numCuentas; i++) {
+        string nombre;
+        double saldoInicial;
+        cout << "\nIngrese el nombre del titular de la cuenta " << i + 1 << ": ";
+        cin.ignore();
+        getline(cin, nombre);
+        cout << "Ingrese el saldo inicial: ";
+        cin >> saldoInicial;
+        cuentas.push_back(new CuentaBancaria(nombre, saldoInicial));
+    }
 
-    CuentaBancaria cuenta(nombre, saldoInicial);
-
-    int opcion;
+    int opcion, cuentaIndex;
     double monto;
 
     do {
@@ -92,19 +100,29 @@ int main() {
         cout << "Seleccione una opcion: ";
         cin >> opcion;
 
+        if (opcion >= 1 && opcion <= 3) {
+            cout << "Ingrese el numero de cuenta (1 - " << numCuentas << "): ";
+            cin >> cuentaIndex;
+            if (cuentaIndex < 1 || cuentaIndex > numCuentas) {
+                cout << "Numero de cuenta invalido." << endl;
+                continue;
+            }
+            cuentaIndex--; // Ajuste para índice base 0
+        }
+
         switch (opcion) {
         case 1:
             cout << "Ingrese monto a depositar: ";
             cin >> monto;
-            cuenta.depositar(monto);
+            cuentas[cuentaIndex]->depositar(monto);
             break;
         case 2:
             cout << "Ingrese monto a retirar: ";
             cin >> monto;
-            cuenta.retirar(monto);
+            cuentas[cuentaIndex]->retirar(monto);
             break;
         case 3:
-            cuenta.consultarSaldo();
+            cuentas[cuentaIndex]->consultarSaldo();
             break;
         case 4:
             cout << "Saliendo del programa..." << endl;
@@ -114,5 +132,8 @@ int main() {
         }
     } while (opcion != 4);
 
+    for (Cuenta* cuenta : cuentas) {
+        delete cuenta;
+    }
     return 0;
 }
